@@ -1,0 +1,16 @@
+{
+  "name": "song-quiz",
+  "version": "1.0.0",
+  "description": "A themed song voting platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.7",
+    "cookie-parser": "^1.4.6",
+    "uuid": "^9.0.1"
+  }
+}

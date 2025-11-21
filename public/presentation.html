@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Song Quiz - Presentation View</title>
+  <link rel="stylesheet" href="presentation.css">
+</head>
+<body>
+  <div class="presentation-container">
+    <!-- Phase 0: Waiting -->
+    <div id="phase0" class="phase-display hidden">
+      <div class="waiting-display">
+        <h1 class="title">🎵 Song Quiz</h1>
+        <p class="subtitle">Waiting for next round...</p>
+      </div>
+    </div>
+
+    <!-- Phase 1: Submission -->
+    <div id="phase1" class="phase-display hidden">
+      <div class="header">
+        <h1 class="phase-title">📝 Submission Phase</h1>
+        <div class="theme-display">
+          <span class="theme-label">Theme:</span>
+          <span id="theme1" class="theme-text"></span>
+        </div>
+      </div>
+      <div class="content">
+        <p class="instruction">Participants are submitting their songs...</p>
+        <div id="submissionCount" class="counter">0 songs submitted</div>
+      </div>
+    </div>
+
+    <!-- Phase 2: Voting -->
+    <div id="phase2" class="phase-display hidden">
+      <div class="header">
+        <h1 class="phase-title">🗳️ Voting Phase</h1>
+        <div class="theme-display">
+          <span class="theme-label">Theme:</span>
+          <span id="theme2" class="theme-text"></span>
+        </div>
+      </div>
+      <div class="content">
+        <p class="instruction">Vote for your favorite songs!</p>
+        <div id="songsList" class="songs-display"></div>
+      </div>
+    </div>
+
+    <!-- Phase 3: Results -->
+    <div id="phase3" class="phase-display hidden">
+      <div class="header">
+        <h1 class="phase-title">🏆 Results</h1>
+        <div class="theme-display">
+          <span class="theme-label">Theme:</span>
+          <span id="theme3" class="theme-text"></span>
+        </div>
+      </div>
+      <div class="content">
+        <div id="resultsList" class="results-display"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="presentation.js"></script>
+</body>
+</html>

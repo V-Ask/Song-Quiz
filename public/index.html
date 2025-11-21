@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Song Quiz</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎵 Song Quiz</h1>
+      <div id="phaseIndicator" class="phase-indicator"></div>
+    </header>
+
+    <main id="mainContent">
+      <!-- Phase 0: Waiting -->
+      <div id="phase0" class="phase-content hidden">
+        <div class="waiting-message">
+          <h2>Waiting for the next round...</h2>
+          <p>The admin will start a new song quiz soon!</p>
+        </div>
+      </div>
+
+      <!-- Phase 1: Submission -->
+      <div id="phase1" class="phase-content hidden">
+        <div class="theme-banner">
+          <span class="theme-label">Theme:</span>
+          <span id="theme1" class="theme-text"></span>
+        </div>
+
+        <div id="submissionStatus" class="status-message hidden"></div>
+
+        <div id="submissionForm" class="card">
+          <h2>Submit Your Song</h2>
+          <form id="songForm">
+            <div class="form-group">
+              <label for="submitterName">Your Name</label>
+              <input type="text" id="submitterName" required placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+              <label for="songName">Song Title</label>
+              <input type="text" id="songName" required placeholder="Song name">
+            </div>
+            <div class="form-group">
+              <label for="songAuthor">Artist</label>
+              <input type="text" id="songAuthor" required placeholder="Artist name">
+            </div>
+            <div class="form-group">
+              <label for="songLink">Link (Spotify, YouTube, or SoundCloud)</label>
+              <input type="url" id="songLink" required placeholder="https://...">
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Song</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Phase 2: Voting -->
+      <div id="phase2" class="phase-content hidden">
+        <div class="theme-banner">
+          <span class="theme-label">Theme:</span>
+          <span id="theme2" class="theme-text"></span>
+        </div>
+
+        <div id="votingStatus" class="status-message hidden"></div>
+
+        <div id="votingSection">
+          <div class="card">
+            <h2>Vote for Your Favorites</h2>
+            <p class="voting-instructions">
+              Assign your points: <strong>3 points</strong>, <strong>2 points</strong>, and <strong>1 point</strong> to three different songs.
+            </p>
+
+            <div id="songsList" class="songs-list"></div>
+
+            <button id="submitVotes" class="btn btn-primary" disabled>Submit Votes</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3: Results -->
+      <div id="phase3" class="phase-content hidden">
+        <div class="theme-banner">
+          <span class="theme-label">Theme:</span>
+          <span id="theme3" class="theme-text"></span>
+        </div>
+
+        <div class="card">
+          <h2>🏆 Results</h2>
+          <div id="resultsList" class="results-list"></div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <a href="/admin" class="admin-link">Admin Panel</a>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

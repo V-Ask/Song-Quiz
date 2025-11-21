@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Song Quiz</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎛️ Admin Panel</h1>
+      <a href="/" class="back-link">← Back to Quiz</a>
+    </header>
+
+    <main id="adminContent">
+      <!-- Login Screen -->
+      <div id="loginScreen" class="card">
+        <h2>Admin Login</h2>
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="adminPassword">Password</label>
+            <input type="password" id="adminPassword" required placeholder="Enter admin password">
+          </div>
+          <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+        <div id="loginError" class="error-message hidden"></div>
+      </div>
+
+      <!-- Admin Dashboard -->
+      <div id="dashboard" class="hidden">
+        <!-- Current Status -->
+        <div class="card">
+          <h2>Current Status</h2>
+          <div id="currentStatus" class="status-grid">
+            <div class="status-item">
+              <span class="status-label">Phase:</span>
+              <span id="currentPhase" class="status-value">-</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Theme:</span>
+              <span id="currentTheme" class="status-value">-</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Songs Submitted:</span>
+              <span id="songCount" class="status-value">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 0: Create Flow -->
+        <div id="createFlowSection" class="card hidden">
+          <h2>Phase 0: Create New Flow</h2>
+          <form id="flowForm">
+            <div class="form-group">
+              <label for="themeInput">Song Theme</label>
+              <input type="text" id="themeInput" required placeholder="e.g., Summer Vibes, 90s Classics">
+            </div>
+            <div class="form-group">
+              <label for="timerInput">Auto-advance Timer (seconds, optional)</label>
+              <input type="number" id="timerInput" placeholder="Leave empty for manual control">
+              <small>If set, phases will automatically advance after this time</small>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Flow & Start Submissions</button>
+          </form>
+        </div>
+
+        <!-- Phase Control -->
+        <div id="phaseControl" class="card hidden">
+          <h2>Phase Control</h2>
+          <div class="phase-buttons">
+            <button id="startSubmission" class="btn btn-phase" data-phase="1">
+              Phase 1: Start Submissions
+            </button>
+            <button id="startVoting" class="btn btn-phase" data-phase="2">
+              Phase 2: Start Voting
+            </button>
+            <button id="showResults" class="btn btn-phase" data-phase="3">
+              Phase 3: Show Results
+            </button>
+            <button id="resetFlow" class="btn btn-danger">
+              Reset to Phase 0
+            </button>
+          </div>
+        </div>
+
+        <!-- Submissions List -->
+        <div id="submissionsSection" class="card hidden">
+          <h2>Submitted Songs</h2>
+          <div id="submissionsList" class="submissions-list"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="card hidden">
+          <h2>Final Results</h2>
+          <div id="adminResultsList" class="results-list"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
