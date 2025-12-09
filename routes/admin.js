@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { queries } = require('../database');
 const { ensureAdmin } = require('../middleware/auth');
+const { submissionLimiter, readLimiter } = require('../middleware/rateLimits');
 
 // Create a new flow with theme (Phase 0)
-router.post('/flow', ensureAdmin, async (req, res) => {
+router.post('/flow', submissionLimiter, ensureAdmin, async (req, res) => {
   try {
     const { theme, timer } = req.body;
 
@@ -21,7 +22,7 @@ router.post('/flow', ensureAdmin, async (req, res) => {
 });
 
 // Update phase
-router.post('/phase', ensureAdmin, async (req, res) => {
+router.post('/phase', submissionLimiter, ensureAdmin, async (req, res) => {
   try {
     const { phase, timer } = req.body;
 
@@ -38,7 +39,7 @@ router.post('/phase', ensureAdmin, async (req, res) => {
 });
 
 // Get current flow status
-router.get('/status', ensureAdmin, async (req, res) => {
+router.get('/status', readLimiter, ensureAdmin, async (req, res) => {
   try {
     const flow = await queries.getCurrentFlow();
     if (!flow) {

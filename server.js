@@ -1,8 +1,16 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const helmet = require('helmet');
 const { initializeDatabase, queries } = require('./database');
 const { ensureUser, loginAdmin, checkAdmin } = require('./middleware/auth');
+const {
+  globalLimiter,
+  authLimiter,
+  submissionLimiter,
+  submissionSpeedLimiter,
+  readLimiter,
+} = require('./middleware/rateLimits');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -12,12 +20,18 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable for inline scripts in frontend
+}));
+app.use(globalLimiter);
+
 // Initialize database
 initializeDatabase();
 
-// Auth routes
-app.post('/api/admin/login', loginAdmin);
-app.get('/api/admin/check', checkAdmin);
+// Auth routes (with strict rate limiting to prevent brute force)
+app.post('/api/admin/login', authLimiter, loginAdmin);
+app.get('/api/admin/check', readLimiter, checkAdmin);
 
 // API routes
 app.use('/api/admin', require('./routes/admin'));
@@ -25,7 +39,7 @@ app.use('/api/songs', require('./routes/songs'));
 app.use('/api/votes', require('./routes/votes'));
 
 // Get current flow info (for all users)
-app.get('/api/flow', ensureUser, async (req, res) => {
+app.get('/api/flow', readLimiter, ensureUser, async (req, res) => {
   try {
     const flow = await queries.getCurrentFlow();
     if (!flow) {
@@ -48,7 +62,7 @@ app.get('/api/flow', ensureUser, async (req, res) => {
 });
 
 // Timer check endpoint (for auto-phase progression)
-app.get('/api/timer-check', async (req, res) => {
+app.get('/api/timer-check', readLimiter, async (req, res) => {
   try {
     const flow = await queries.getCurrentFlow();
     if (!flow || !flow.phase_timer) {

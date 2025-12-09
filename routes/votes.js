@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { queries } = require('../database');
 const { ensureUser } = require('../middleware/auth');
+const { submissionLimiter, submissionSpeedLimiter, readLimiter } = require('../middleware/rateLimits');
 
 // Submit votes (Phase 2)
-router.post('/submit', ensureUser, async (req, res) => {
+router.post('/submit', submissionSpeedLimiter, submissionLimiter, ensureUser, async (req, res) => {
   try {
     const flow = await queries.getCurrentFlow();
 
@@ -60,7 +61,7 @@ router.post('/submit', ensureUser, async (req, res) => {
 });
 
 // Get user's votes
-router.get('/my-votes', ensureUser, async (req, res) => {
+router.get('/my-votes', readLimiter, ensureUser, async (req, res) => {
   try {
     const flow = await queries.getCurrentFlow();
 
@@ -79,7 +80,7 @@ router.get('/my-votes', ensureUser, async (req, res) => {
 });
 
 // Get results (Phase 3)
-router.get('/results', ensureUser, async (req, res) => {
+router.get('/results', readLimiter, ensureUser, async (req, res) => {
   try {
     const flow = await queries.getCurrentFlow();
 
