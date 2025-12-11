@@ -2,10 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { queries } = require('../database');
 const { ensureUser } = require('../middleware/auth');
-const { submissionLimiter, submissionSpeedLimiter, readLimiter } = require('../middleware/rateLimits');
 
 // Submit a song (Phase 1)
-router.post('/submit', submissionSpeedLimiter, submissionLimiter, ensureUser, async (req, res) => {
+router.post('/submit', ensureUser, async (req, res) => {
   try {
     const flow = await queries.getCurrentFlow();
 
@@ -54,7 +53,7 @@ router.post('/submit', submissionSpeedLimiter, submissionLimiter, ensureUser, as
 });
 
 // Get list of songs
-router.get('/list', readLimiter, ensureUser, async (req, res) => {
+router.get('/list', ensureUser, async (req, res) => {
   try {
     const flow = await queries.getCurrentFlow();
 
