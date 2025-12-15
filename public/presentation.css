@@ -241,6 +241,15 @@ body {
   border-radius: 15px;
 }
 
+.version {
+  position: fixed;
+  bottom: 15px;
+  right: 20px;
+  font-size: 14px;
+  opacity: 0.4;
+  color: white;
+}
+
 /* Responsive adjustments for smaller screens */
 @media (max-width: 1200px) {
   .phase-title { font-size: 60px; }

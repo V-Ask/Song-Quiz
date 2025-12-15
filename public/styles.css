@@ -378,6 +378,13 @@ footer {
   margin-bottom: 1rem;
 }
 
+.version {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin-left: 1rem;
+}
+
 .status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
