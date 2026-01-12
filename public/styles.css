@@ -464,6 +464,49 @@ footer {
   border: 1px solid var(--error);
 }
 
+.image-preview {
+  margin-top: 1rem;
+  position: relative;
+  display: inline-block;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 0.5rem;
+  border: 2px solid var(--border);
+}
+
+.btn-remove-image {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: var(--error);
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.btn-remove-image:hover {
+  background: #dc2626;
+}
+
+.theme-image-container {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.theme-image {
+  max-width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 @media (max-width: 640px) {
   header h1 {
     font-size: 2rem;

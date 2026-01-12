@@ -3,7 +3,7 @@ const router = express.Router();
 const { queries } = require('../database');
 const { ensureUser } = require('../middleware/auth');
 
-// Submit a song (Phase 1)
+// Submit or update a song (Phase 1)
 router.post('/submit', ensureUser, async (req, res) => {
   try {
     const flow = await queries.getCurrentFlow();
@@ -32,23 +32,50 @@ router.post('/submit', ensureUser, async (req, res) => {
 
     // Check if user already submitted
     const hasSubmitted = await queries.hasUserSubmitted(flow.id, req.userId);
+
     if (hasSubmitted) {
-      return res.status(400).json({ error: 'You have already submitted a song' });
+      // Update existing submission
+      await queries.updateSong(
+        flow.id,
+        req.userId,
+        songName,
+        songAuthor,
+        songLink,
+        submitterName
+      );
+      res.json({ success: true, updated: true });
+    } else {
+      // Create new submission
+      const song = await queries.submitSong(
+        flow.id,
+        songName,
+        songAuthor,
+        songLink,
+        submitterName,
+        req.userId
+      );
+      res.json({ success: true, song, updated: false });
     }
-
-    const song = await queries.submitSong(
-      flow.id,
-      songName,
-      songAuthor,
-      songLink,
-      submitterName,
-      req.userId
-    );
-
-    res.json({ success: true, song });
   } catch (error) {
     console.error('Error submitting song:', error);
     res.status(500).json({ error: 'Failed to submit song' });
+  }
+});
+
+// Get user's submitted song
+router.get('/my-song', ensureUser, async (req, res) => {
+  try {
+    const flow = await queries.getCurrentFlow();
+
+    if (!flow) {
+      return res.json({ song: null });
+    }
+
+    const song = await queries.getUserSong(flow.id, req.userId);
+    res.json({ song });
+  } catch (error) {
+    console.error('Error getting user song:', error);
+    res.status(500).json({ error: 'Failed to get user song' });
   }
 });
 

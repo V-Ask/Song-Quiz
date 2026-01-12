@@ -103,6 +103,19 @@ body {
   align-items: center;
 }
 
+/* Theme image */
+.theme-image-container {
+  margin-bottom: 30px;
+}
+
+.theme-image {
+  max-width: 100%;
+  max-height: 40vh;
+  object-fit: contain;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
 .instruction {
   font-size: 36px;
   margin-bottom: 40px;
@@ -179,7 +192,15 @@ body {
   display: flex;
   align-items: center;
   gap: 35px;
-  transition: transform 0.3s ease;
+  transition: transform 0.5s ease, box-shadow 0.5s ease, border 0.5s ease;
+  border: 3px solid transparent;
+}
+
+.result-card.highlighted {
+  transform: scale(1.05);
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.5);
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255,255,255,0.25);
 }
 
 .result-rank {

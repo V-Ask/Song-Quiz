@@ -57,6 +57,15 @@
               <input type="text" id="themeInput" required placeholder="e.g., Summer Vibes, 90s Classics">
             </div>
             <div class="form-group">
+              <label for="themeImageInput">Theme Image (optional)</label>
+              <input type="file" id="themeImageInput" accept="image/*">
+              <small>Image will be shown during the submission phase</small>
+              <div id="imagePreview" class="image-preview hidden">
+                <img id="previewImg" src="" alt="Preview">
+                <button type="button" id="removeImage" class="btn-remove-image">Remove</button>
+              </div>
+            </div>
+            <div class="form-group">
               <label for="timerInput">Auto-advance Timer (seconds, optional)</label>
               <input type="number" id="timerInput" placeholder="Leave empty for manual control">
               <small>If set, phases will automatically advance after this time</small>
@@ -99,7 +108,7 @@
     </main>
 
     <footer>
-      <span class="version">v1.0.1</span>
+      <span class="version">v1.1.0</span>
     </footer>
   </div>
 

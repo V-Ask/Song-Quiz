@@ -11,6 +11,7 @@ function initializeDatabase() {
     db.run(`CREATE TABLE IF NOT EXISTS current_flow (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       theme TEXT NOT NULL,
+      theme_image TEXT DEFAULT NULL,
       phase INTEGER DEFAULT 0,
       phase_timer INTEGER DEFAULT NULL,
       phase_started_at INTEGER DEFAULT NULL,
@@ -63,7 +64,7 @@ const queries = {
     });
   },
 
-  createFlow: (theme, timer = null) => {
+  createFlow: (theme, timer = null, themeImage = null) => {
     return new Promise((resolve, reject) => {
       db.run('DELETE FROM current_flow WHERE id = 1', (err) => {
         if (err) return reject(err);
@@ -72,8 +73,8 @@ const queries = {
           db.run('DELETE FROM votes', (err) => {
             if (err) return reject(err);
             db.run(
-              'INSERT INTO current_flow (id, theme, phase, phase_timer, phase_started_at) VALUES (1, ?, 0, ?, strftime("%s", "now"))',
-              [theme, timer],
+              'INSERT INTO current_flow (id, theme, theme_image, phase, phase_timer, phase_started_at) VALUES (1, ?, ?, 0, ?, strftime("%s", "now"))',
+              [theme, themeImage, timer],
               function(err) {
                 if (err) reject(err);
                 else resolve({ id: 1, theme, phase: 0 });
@@ -146,6 +147,32 @@ const queries = {
         (err, rows) => {
           if (err) reject(err);
           else resolve(rows);
+        }
+      );
+    });
+  },
+
+  getUserSong: (flowId, userId) => {
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT id, song_name, song_author, song_link, submitter_name FROM songs WHERE flow_id = ? AND user_id = ?',
+        [flowId, userId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+  },
+
+  updateSong: (flowId, userId, songName, songAuthor, songLink, submitterName) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE songs SET song_name = ?, song_author = ?, song_link = ?, submitter_name = ? WHERE flow_id = ? AND user_id = ?',
+        [songName, songAuthor, songLink, submitterName, flowId, userId],
+        function(err) {
+          if (err) reject(err);
+          else resolve({ changes: this.changes });
         }
       );
     });

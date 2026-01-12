@@ -1,4 +1,7 @@
 let currentPhase = -1;
+let currentHighlightIndex = 0;
+let highlightInterval = null;
+let cachedResultsJson = null;
 
 // Initialize presentation
 async function init() {
@@ -38,6 +41,12 @@ async function updateDisplay() {
 
 // Show specific phase display
 function showPhase(phase) {
+  // Stop highlight cycle when leaving phase 3
+  if (currentPhase === 3 && phase !== 3) {
+    stopHighlightCycle();
+    cachedResultsJson = null;
+  }
+
   // Hide all phases
   for (let i = 0; i <= 3; i++) {
     const phaseEl = document.getElementById(`phase${i}`);
@@ -56,6 +65,16 @@ function showPhase(phase) {
 // Phase 1: Submission phase
 async function loadSubmissionPhase(data) {
   document.getElementById('theme1').textContent = data.theme || 'No theme set';
+
+  // Display theme image if present
+  const imageContainer = document.getElementById('themeImageContainer');
+  const themeImage = document.getElementById('themeImage1');
+  if (data.themeImage) {
+    themeImage.src = data.themeImage;
+    imageContainer.classList.remove('hidden');
+  } else {
+    imageContainer.classList.add('hidden');
+  }
 
   try {
     const response = await fetch('/api/songs/list');
@@ -105,6 +124,14 @@ async function loadResultsPhase(data) {
     const resultsData = await response.json();
     const results = resultsData.results || [];
 
+    // Check if results have changed
+    const newResultsJson = JSON.stringify(results);
+    if (newResultsJson === cachedResultsJson) {
+      // Data hasn't changed, don't re-render
+      return;
+    }
+    cachedResultsJson = newResultsJson;
+
     const resultsList = document.getElementById('resultsList');
     resultsList.innerHTML = '';
 
@@ -123,8 +150,50 @@ async function loadResultsPhase(data) {
       `;
       resultsList.appendChild(resultCard);
     });
+
+    // Start highlight cycling
+    startHighlightCycle(results.length);
   } catch (error) {
     console.error('Error loading results:', error);
+  }
+}
+
+// Start highlight cycle for results
+function startHighlightCycle(totalResults) {
+  if (totalResults === 0) return;
+
+  // Clear any existing interval
+  stopHighlightCycle();
+
+  // Reset to first result
+  currentHighlightIndex = 0;
+  updateHighlight(totalResults);
+
+  // Cycle every 3 seconds
+  highlightInterval = setInterval(() => {
+    currentHighlightIndex = (currentHighlightIndex + 1) % totalResults;
+    updateHighlight(totalResults);
+  }, 3000);
+}
+
+// Update the highlighted result
+function updateHighlight(totalResults) {
+  const resultCards = document.querySelectorAll('.result-card');
+  resultCards.forEach((card, index) => {
+    if (index === currentHighlightIndex) {
+      card.classList.add('highlighted');
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      card.classList.remove('highlighted');
+    }
+  });
+}
+
+// Stop highlight cycle
+function stopHighlightCycle() {
+  if (highlightInterval) {
+    clearInterval(highlightInterval);
+    highlightInterval = null;
   }
 }
 

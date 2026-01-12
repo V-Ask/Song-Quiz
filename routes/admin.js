@@ -6,13 +6,13 @@ const { ensureAdmin } = require('../middleware/auth');
 // Create a new flow with theme (Phase 0)
 router.post('/flow', ensureAdmin, async (req, res) => {
   try {
-    const { theme, timer } = req.body;
+    const { theme, timer, themeImage } = req.body;
 
     if (!theme) {
       return res.status(400).json({ error: 'Theme is required' });
     }
 
-    const flow = await queries.createFlow(theme, timer || null);
+    const flow = await queries.createFlow(theme, timer || null, themeImage || null);
     res.json(flow);
   } catch (error) {
     console.error('Error creating flow:', error);

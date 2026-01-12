@@ -1,5 +1,7 @@
 let currentPhase = 0;
 let selectedVotes = {};
+let justSubmitted = false;
+let justVoted = false;
 
 // Initialize app
 async function init() {
@@ -63,15 +65,54 @@ async function updatePhase() {
 async function loadSubmissionPhase(data) {
   document.getElementById('theme1').textContent = data.theme;
 
+  // Display theme image if present
+  const imageContainer = document.getElementById('themeImageContainer');
+  const themeImage = document.getElementById('themeImage');
+  if (data.themeImage) {
+    themeImage.src = data.themeImage;
+    imageContainer.classList.remove('hidden');
+  } else {
+    imageContainer.classList.add('hidden');
+  }
+
+  const submitButton = document.querySelector('#songForm button[type="submit"]');
+  const status = document.getElementById('submissionStatus');
+
   if (data.hasSubmitted) {
-    document.getElementById('submissionForm').classList.add('hidden');
-    const status = document.getElementById('submissionStatus');
-    status.textContent = '✓ You have already submitted a song';
-    status.classList.remove('hidden');
-    status.classList.add('status-message', 'success');
+    // Fetch and pre-fill user's existing song
+    try {
+      const response = await fetch('/api/songs/my-song');
+      const result = await response.json();
+
+      if (result.song) {
+        document.getElementById('submitterName').value = result.song.submitter_name;
+        document.getElementById('songName').value = result.song.song_name;
+        document.getElementById('songAuthor').value = result.song.song_author;
+        document.getElementById('songLink').value = result.song.song_link;
+
+        submitButton.textContent = 'Update Song';
+      }
+    } catch (error) {
+      console.error('Error loading user song:', error);
+    }
+
+    document.getElementById('submissionForm').classList.remove('hidden');
+
+    if (justSubmitted) {
+      status.textContent = '✓ Song updated successfully';
+      status.classList.remove('hidden');
+      status.classList.add('status-message', 'success');
+    } else {
+      status.classList.add('hidden');
+    }
   } else {
     document.getElementById('submissionForm').classList.remove('hidden');
-    document.getElementById('submissionStatus').classList.add('hidden');
+    submitButton.textContent = 'Submit Song';
+
+    // Clear form for new submission
+    document.getElementById('songForm').reset();
+
+    status.classList.add('hidden');
   }
 }
 
@@ -96,7 +137,11 @@ document.getElementById('songForm').addEventListener('submit', async (e) => {
     const result = await response.json();
 
     if (response.ok) {
-      document.getElementById('songForm').reset();
+      // Only reset form on initial submission, not on update
+      if (!result.updated) {
+        document.getElementById('songForm').reset();
+      }
+      justSubmitted = true;
       await updatePhase();
     } else {
       alert(result.error || 'Failed to submit song');
@@ -112,9 +157,10 @@ async function loadVotingPhase(data) {
   document.getElementById('theme2').textContent = data.theme;
 
   if (data.hasVoted) {
+    const message = justVoted ? '✓ You have voted' : '✓ You have already voted';
     document.getElementById('votingSection').innerHTML = `
       <div class="status-message success">
-        ✓ You have already voted
+        ${message}
       </div>
     `;
     return;
@@ -244,6 +290,7 @@ document.getElementById('submitVotes').addEventListener('click', async () => {
 
     if (response.ok) {
       selectedVotes = {};
+      justVoted = true;
       await updatePhase();
     } else {
       alert(result.error || 'Failed to submit votes');

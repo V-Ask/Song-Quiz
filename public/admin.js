@@ -1,4 +1,5 @@
 let isAdmin = false;
+let selectedThemeImage = null;
 
 // Initialize admin panel
 async function init() {
@@ -103,6 +104,27 @@ async function loadDashboard() {
   }
 }
 
+// Handle theme image selection
+document.getElementById('themeImageInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      selectedThemeImage = event.target.result;
+      document.getElementById('previewImg').src = selectedThemeImage;
+      document.getElementById('imagePreview').classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// Handle remove image button
+document.getElementById('removeImage').addEventListener('click', () => {
+  selectedThemeImage = null;
+  document.getElementById('themeImageInput').value = '';
+  document.getElementById('imagePreview').classList.add('hidden');
+});
+
 // Create new flow
 document.getElementById('flowForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -116,12 +138,15 @@ document.getElementById('flowForm').addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         theme,
-        timer: timer ? parseInt(timer) : null
+        timer: timer ? parseInt(timer) : null,
+        themeImage: selectedThemeImage
       })
     });
 
     if (response.ok) {
       document.getElementById('flowForm').reset();
+      selectedThemeImage = null;
+      document.getElementById('imagePreview').classList.add('hidden');
       // Automatically advance to phase 1
       await updatePhase(1);
       await loadDashboard();

@@ -44,6 +44,7 @@ app.get('/api/flow', ensureUser, async (req, res) => {
     res.json({
       phase: flow.phase,
       theme: flow.theme,
+      themeImage: flow.theme_image,
       hasSubmitted,
       hasVoted
     });
