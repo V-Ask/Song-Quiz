@@ -1,3 +1,6 @@
 BUGS:
-
+- The background cuts off weirdly on the presentation view. Please help make the transitions smoother.
+- The presentation auto-scroll is very laggy on the RPi 3 that I use to show the website - please make it more performant so it can run on the slowest of potatoes
 CHANGES:
+- Please help me integrate statistics for previous votes allowing me to see all past song quizzes, their votes, who submitted them and such. Give me graphs.
+- Please integrate a full-fledged log-in system where a user can create a quiz accessible from anywhere with a link with a uuid given as a query param. The votes themselves should be structured as they already are, but the user/admin should be able to view the song quizz's statistics as noted above. The admin panel should be removed from anonymous access as well as the hard-coded password, as the panel is now only reachable from the admins logged in page.

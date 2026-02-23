@@ -1,20 +1,31 @@
+const urlParams = new URLSearchParams(window.location.search);
+const quizId = urlParams.get('quiz');
+
 let currentPhase = -1;
 let currentHighlightIndex = 0;
 let highlightInterval = null;
 let cachedResultsJson = null;
+let cachedResultCards = null;
 
 // Initialize presentation
 async function init() {
+  if (!quizId) {
+    document.querySelector('.presentation-container').innerHTML =
+      '<div style="text-align:center"><h1 style="font-size:48px;margin-bottom:20px">No Quiz Specified</h1><p style="font-size:24px;opacity:0.8">Use a quiz link to access the presentation view.</p></div>';
+    return;
+  }
+
   await updateDisplay();
-  // Check for updates every 3 seconds
   setInterval(updateDisplay, 3000);
 }
 
 // Update the display based on current phase
 async function updateDisplay() {
   try {
-    const response = await fetch('/api/flow');
+    const response = await fetch(`/api/flow?quizId=${quizId}`);
     const data = await response.json();
+
+    if (data.error) return;
 
     // Only update if phase changed
     if (data.phase !== currentPhase) {
@@ -22,7 +33,6 @@ async function updateDisplay() {
       showPhase(data.phase);
     }
 
-    // Update phase-specific content
     switch (data.phase) {
       case 1:
         await loadSubmissionPhase(data);
@@ -41,32 +51,24 @@ async function updateDisplay() {
 
 // Show specific phase display
 function showPhase(phase) {
-  // Stop highlight cycle when leaving phase 3
   if (currentPhase === 3 && phase !== 3) {
     stopHighlightCycle();
     cachedResultsJson = null;
   }
 
-  // Hide all phases
   for (let i = 0; i <= 3; i++) {
     const phaseEl = document.getElementById(`phase${i}`);
-    if (phaseEl) {
-      phaseEl.classList.add('hidden');
-    }
+    if (phaseEl) phaseEl.classList.add('hidden');
   }
 
-  // Show current phase
   const currentPhaseEl = document.getElementById(`phase${phase}`);
-  if (currentPhaseEl) {
-    currentPhaseEl.classList.remove('hidden');
-  }
+  if (currentPhaseEl) currentPhaseEl.classList.remove('hidden');
 }
 
 // Phase 1: Submission phase
 async function loadSubmissionPhase(data) {
   document.getElementById('theme1').textContent = data.theme || 'No theme set';
 
-  // Display theme image if present
   const imageContainer = document.getElementById('themeImageContainer');
   const themeImage = document.getElementById('themeImage1');
   if (data.themeImage) {
@@ -77,7 +79,7 @@ async function loadSubmissionPhase(data) {
   }
 
   try {
-    const response = await fetch('/api/songs/list');
+    const response = await fetch(`/api/songs/list?quizId=${quizId}`);
     const songsData = await response.json();
     const count = songsData.songs ? songsData.songs.length : 0;
 
@@ -93,7 +95,7 @@ async function loadVotingPhase(data) {
   document.getElementById('theme2').textContent = data.theme || 'No theme set';
 
   try {
-    const response = await fetch('/api/songs/list');
+    const response = await fetch(`/api/songs/list?quizId=${quizId}`);
     const songsData = await response.json();
     const songs = songsData.songs || [];
 
@@ -120,23 +122,37 @@ async function loadResultsPhase(data) {
   document.getElementById('theme3').textContent = data.theme || 'No theme set';
 
   try {
-    const response = await fetch('/api/votes/results');
-    const resultsData = await response.json();
+    const [resultsRes, badgesRes] = await Promise.all([
+      fetch(`/api/votes/results?quizId=${quizId}`),
+      fetch(`/api/votes/badges?quizId=${quizId}`)
+    ]);
+    const resultsData = await resultsRes.json();
+    const badgesData = await badgesRes.json();
     const results = resultsData.results || [];
+    const badges = badgesData.badges || {};
 
-    // Check if results have changed
-    const newResultsJson = JSON.stringify(results);
+    const newResultsJson = JSON.stringify({ results, badges });
     if (newResultsJson === cachedResultsJson) {
-      // Data hasn't changed, don't re-render
       return;
     }
     cachedResultsJson = newResultsJson;
+    cachedResultCards = null;
 
     const resultsList = document.getElementById('resultsList');
     resultsList.innerHTML = '';
 
     results.forEach((result, index) => {
       const rankClass = index === 0 ? 'first' : index === 1 ? 'second' : index === 2 ? 'third' : '';
+      const songBadges = badges[result.id] || [];
+      const badgesHtml = songBadges.length > 0
+        ? `<div class="badges-container">${songBadges.map(b =>
+            `<span class="badge" title="${escapeHtml(b.description)}">
+              <span class="badge-icon">${b.icon}</span>
+              <span class="badge-name">${escapeHtml(b.name)}</span>
+            </span>`
+          ).join('')}</div>`
+        : '';
+
       const resultCard = document.createElement('div');
       resultCard.className = 'result-card';
       resultCard.innerHTML = `
@@ -145,51 +161,45 @@ async function loadResultsPhase(data) {
           <div class="result-title">${escapeHtml(result.song_name)}</div>
           <div class="result-artist">by ${escapeHtml(result.song_author)}</div>
           <div class="result-submitter">submitted by ${escapeHtml(result.submitter_name)}</div>
+          ${badgesHtml}
         </div>
         <div class="result-points">${result.total_points} pts</div>
       `;
       resultsList.appendChild(resultCard);
     });
 
-    // Start highlight cycling
     startHighlightCycle(results.length);
   } catch (error) {
     console.error('Error loading results:', error);
   }
 }
 
-// Start highlight cycle for results
+// Highlight cycling
 function startHighlightCycle(totalResults) {
   if (totalResults === 0) return;
-
-  // Clear any existing interval
   stopHighlightCycle();
-
-  // Reset to first result
   currentHighlightIndex = 0;
   updateHighlight(totalResults);
-
-  // Cycle every 3 seconds
   highlightInterval = setInterval(() => {
     currentHighlightIndex = (currentHighlightIndex + 1) % totalResults;
     updateHighlight(totalResults);
   }, 3000);
 }
 
-// Update the highlighted result
 function updateHighlight(totalResults) {
-  const resultCards = document.querySelectorAll('.result-card');
-  resultCards.forEach((card, index) => {
-    if (index === currentHighlightIndex) {
-      card.classList.add('highlighted');
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (!cachedResultCards || cachedResultCards.length !== totalResults) {
+    cachedResultCards = document.querySelectorAll('.result-card');
+  }
+  for (let i = 0; i < cachedResultCards.length; i++) {
+    if (i === currentHighlightIndex) {
+      cachedResultCards[i].classList.add('highlighted');
+      cachedResultCards[i].scrollIntoView({ behavior: 'instant', block: 'center' });
     } else {
-      card.classList.remove('highlighted');
+      cachedResultCards[i].classList.remove('highlighted');
     }
-  });
+  }
 }
 
-// Stop highlight cycle
 function stopHighlightCycle() {
   if (highlightInterval) {
     clearInterval(highlightInterval);
@@ -197,12 +207,10 @@ function stopHighlightCycle() {
   }
 }
 
-// Utility function to escape HTML
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
-// Start the presentation
 init();

@@ -5,20 +5,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Song Quiz</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .landing {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    .landing h2 {
+      color: var(--primary);
+      margin-bottom: 1rem;
+      font-size: 1.75rem;
+    }
+    .landing p {
+      color: var(--text-dim);
+      margin-bottom: 2rem;
+    }
+    .landing .btn {
+      margin: 0.5rem;
+    }
+    .quiz-not-found {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+    .quiz-not-found h2 {
+      color: var(--error);
+      margin-bottom: 1rem;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>🎵 Song Quiz</h1>
+      <h1>Song Quiz</h1>
       <div id="phaseIndicator" class="phase-indicator"></div>
     </header>
 
     <main id="mainContent">
+      <!-- Landing (no quiz param) -->
+      <div id="landing" class="phase-content hidden">
+        <div class="landing">
+          <h2>Welcome to Song Quiz</h2>
+          <p>Submit songs for a theme and vote on your favorites!</p>
+          <p>You need a quiz link to participate, or you can create your own.</p>
+          <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+        </div>
+      </div>
+
+      <!-- Quiz not found -->
+      <div id="quizNotFound" class="phase-content hidden">
+        <div class="quiz-not-found">
+          <h2>Quiz Not Found</h2>
+          <p>This quiz link is invalid or has been deleted.</p>
+          <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+        </div>
+      </div>
+
       <!-- Phase 0: Waiting -->
       <div id="phase0" class="phase-content hidden">
         <div class="waiting-message">
           <h2>Waiting for the next round...</h2>
-          <p>The admin will start a new song quiz soon!</p>
+          <p>The quiz host will start submissions soon!</p>
         </div>
       </div>
 
@@ -90,15 +135,15 @@
         </div>
 
         <div class="card">
-          <h2>🏆 Results</h2>
+          <h2>Results</h2>
           <div id="resultsList" class="results-list"></div>
         </div>
       </div>
     </main>
 
     <footer>
-      <a href="/admin" class="admin-link">Admin Panel</a>
-      <span class="version">v1.1.0</span>
+      <a href="/dashboard" class="admin-link">Dashboard</a>
+      <span class="version">v2.0.0</span>
     </footer>
   </div>
 

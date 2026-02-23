@@ -6,17 +6,20 @@ const { ensureUser } = require('../middleware/auth');
 // Submit or update a song (Phase 1)
 router.post('/submit', ensureUser, async (req, res) => {
   try {
-    const flow = await queries.getCurrentFlow();
+    const { quizId, songName, songAuthor, songLink, submitterName } = req.body;
 
-    if (!flow) {
-      return res.status(400).json({ error: 'No active flow' });
+    if (!quizId) {
+      return res.status(400).json({ error: 'Quiz ID is required' });
     }
 
-    if (flow.phase !== 1) {
+    const quiz = await queries.getQuiz(quizId);
+    if (!quiz) {
+      return res.status(400).json({ error: 'Quiz not found' });
+    }
+
+    if (quiz.phase !== 1) {
       return res.status(400).json({ error: 'Submissions are not open' });
     }
-
-    const { songName, songAuthor, songLink, submitterName } = req.body;
 
     if (!songName || !songAuthor || !songLink || !submitterName) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -31,12 +34,12 @@ router.post('/submit', ensureUser, async (req, res) => {
     }
 
     // Check if user already submitted
-    const hasSubmitted = await queries.hasUserSubmitted(flow.id, req.userId);
+    const hasSubmitted = await queries.hasUserSubmitted(quiz.id, req.userId);
 
     if (hasSubmitted) {
       // Update existing submission
       await queries.updateSong(
-        flow.id,
+        quiz.id,
         req.userId,
         songName,
         songAuthor,
@@ -47,7 +50,7 @@ router.post('/submit', ensureUser, async (req, res) => {
     } else {
       // Create new submission
       const song = await queries.submitSong(
-        flow.id,
+        quiz.id,
         songName,
         songAuthor,
         songLink,
@@ -65,13 +68,17 @@ router.post('/submit', ensureUser, async (req, res) => {
 // Get user's submitted song
 router.get('/my-song', ensureUser, async (req, res) => {
   try {
-    const flow = await queries.getCurrentFlow();
-
-    if (!flow) {
+    const quizId = req.query.quizId;
+    if (!quizId) {
       return res.json({ song: null });
     }
 
-    const song = await queries.getUserSong(flow.id, req.userId);
+    const quiz = await queries.getQuiz(quizId);
+    if (!quiz) {
+      return res.json({ song: null });
+    }
+
+    const song = await queries.getUserSong(quiz.id, req.userId);
     res.json({ song });
   } catch (error) {
     console.error('Error getting user song:', error);
@@ -82,23 +89,27 @@ router.get('/my-song', ensureUser, async (req, res) => {
 // Get list of songs
 router.get('/list', ensureUser, async (req, res) => {
   try {
-    const flow = await queries.getCurrentFlow();
+    const quizId = req.query.quizId;
+    if (!quizId) {
+      return res.json({ songs: [], phase: 0 });
+    }
 
-    if (!flow) {
+    const quiz = await queries.getQuiz(quizId);
+    if (!quiz) {
       return res.json({ songs: [], phase: 0 });
     }
 
     // Hide submitters during voting phase
-    const hideSubmitters = flow.phase === 2;
-    const songs = await queries.getSongs(flow.id, hideSubmitters);
+    const hideSubmitters = quiz.phase === 2;
+    const songs = await queries.getSongs(quiz.id, hideSubmitters);
 
     // Check if user has submitted
-    const hasSubmitted = await queries.hasUserSubmitted(flow.id, req.userId);
+    const hasSubmitted = await queries.hasUserSubmitted(quiz.id, req.userId);
 
     res.json({
       songs,
-      phase: flow.phase,
-      theme: flow.theme,
+      phase: quiz.phase,
+      theme: quiz.theme,
       hasSubmitted
     });
   } catch (error) {

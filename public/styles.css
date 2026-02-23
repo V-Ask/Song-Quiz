@@ -464,30 +464,51 @@ footer {
   border: 1px solid var(--error);
 }
 
+/* Flow form layout */
+.flow-form-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.flow-form-left {
+  min-width: 0; /* Prevent grid blowout */
+}
+
+.flow-form-right {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 200px;
+}
+
 .image-preview {
-  margin-top: 1rem;
   position: relative;
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
 }
 
 .image-preview img {
   max-width: 100%;
-  max-height: 200px;
+  max-height: 400px;
   border-radius: 0.5rem;
   border: 2px solid var(--border);
+  object-fit: contain;
 }
 
 .btn-remove-image {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
   background: var(--error);
   color: white;
   border: none;
   border-radius: 0.25rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem 1rem;
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .btn-remove-image:hover {
@@ -496,15 +517,31 @@ footer {
 
 .theme-image-container {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .theme-image {
   max-width: 100%;
-  max-height: 50vh;
+  max-height: 20vh;
   object-fit: contain;
   border-radius: 0.75rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive: stack on smaller screens */
+@media (max-width: 768px) {
+  .flow-form-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .image-preview img {
+    max-height: 250px;
+  }
+
+  .theme-image {
+    max-height: 150px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -533,5 +570,97 @@ footer {
   .btn-danger {
     width: 100%;
     margin: 0.25rem 0;
+  }
+}
+
+/* Badges styles */
+.badges-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%);
+  border: 1px solid rgba(124, 58, 237, 0.4);
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.badge:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.badge-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.badge-name {
+  white-space: nowrap;
+}
+
+/* Special badge colors for specific achievements */
+.badge[title*="Unanimous"] {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.3) 0%, rgba(236, 72, 153, 0.2) 100%);
+  border-color: rgba(167, 139, 250, 0.5);
+}
+
+.badge[title*="Sweeping"] {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.3) 0%, rgba(245, 158, 11, 0.2) 100%);
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+.badge[title*="Photo Finish"] {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.3) 0%, rgba(59, 130, 246, 0.2) 100%);
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+.badge[title*="Polarizing"] {
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.2) 0%, rgba(96, 165, 250, 0.2) 100%);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.badge[title*="People's Champion"],
+.badge[title*="different people"] {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(234, 179, 8, 0.15) 100%);
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+.badge[title*="Hidden Gem"] {
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.25) 0%, rgba(20, 184, 166, 0.15) 100%);
+  border-color: rgba(45, 212, 191, 0.5);
+}
+
+.badge[title*="Heartbreaker"] {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.25) 0%, rgba(225, 29, 72, 0.15) 100%);
+  border-color: rgba(244, 63, 94, 0.5);
+}
+
+/* Mobile adjustments for badges */
+@media (max-width: 640px) {
+  .badges-container {
+    justify-content: center;
+  }
+
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+  }
+
+  .badge-icon {
+    font-size: 0.8rem;
   }
 }

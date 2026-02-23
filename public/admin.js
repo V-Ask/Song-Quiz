@@ -1,5 +1,5 @@
 let isAdmin = false;
-let selectedThemeImage = null;
+let selectedThemeImageFile = null;
 
 // Initialize admin panel
 async function init() {
@@ -108,21 +108,29 @@ async function loadDashboard() {
 document.getElementById('themeImageInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (file) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      selectedThemeImage = event.target.result;
-      document.getElementById('previewImg').src = selectedThemeImage;
-      document.getElementById('imagePreview').classList.remove('hidden');
-    };
-    reader.readAsDataURL(file);
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be less than 5MB');
+      e.target.value = ''; // Clear the input
+      return;
+    }
+
+    selectedThemeImageFile = file;
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    document.getElementById('previewImg').src = previewUrl;
+    document.getElementById('imagePreview').classList.remove('hidden');
   }
 });
 
 // Handle remove image button
 document.getElementById('removeImage').addEventListener('click', () => {
-  selectedThemeImage = null;
+  selectedThemeImageFile = null;
   document.getElementById('themeImageInput').value = '';
   document.getElementById('imagePreview').classList.add('hidden');
+  // Revoke the preview URL to free memory
+  const previewImg = document.getElementById('previewImg');
+  URL.revokeObjectURL(previewImg.src);
 });
 
 // Create new flow
@@ -133,19 +141,24 @@ document.getElementById('flowForm').addEventListener('submit', async (e) => {
   const timer = document.getElementById('timerInput').value;
 
   try {
+    // Use FormData to handle file upload
+    const formData = new FormData();
+    formData.append('theme', theme);
+    if (timer) {
+      formData.append('timer', timer);
+    }
+    if (selectedThemeImageFile) {
+      formData.append('themeImage', selectedThemeImageFile);
+    }
+
     const response = await fetch('/api/admin/flow', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        theme,
-        timer: timer ? parseInt(timer) : null,
-        themeImage: selectedThemeImage
-      })
+      body: formData // Don't set Content-Type header, browser will set it with boundary
     });
 
     if (response.ok) {
       document.getElementById('flowForm').reset();
-      selectedThemeImage = null;
+      selectedThemeImageFile = null;
       document.getElementById('imagePreview').classList.add('hidden');
       // Automatically advance to phase 1
       await updatePhase(1);

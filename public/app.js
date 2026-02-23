@@ -1,3 +1,6 @@
+const urlParams = new URLSearchParams(window.location.search);
+const quizId = urlParams.get('quiz');
+
 let currentPhase = 0;
 let selectedVotes = {};
 let justSubmitted = false;
@@ -5,15 +8,24 @@ let justVoted = false;
 
 // Initialize app
 async function init() {
+  if (!quizId) {
+    // No quiz specified - show landing page
+    document.getElementById('phaseIndicator').textContent = '';
+    document.getElementById('landing').classList.remove('hidden');
+    return;
+  }
+
   await updatePhase();
-  setInterval(checkForUpdates, 5000); // Check for updates every 5 seconds
+  setInterval(checkForUpdates, 5000);
 }
 
 // Check for phase updates
 async function checkForUpdates() {
   try {
-    const response = await fetch('/api/flow');
+    const response = await fetch(`/api/flow?quizId=${quizId}`);
     const data = await response.json();
+
+    if (data.error) return;
 
     if (data.phase !== currentPhase) {
       currentPhase = data.phase;
@@ -27,11 +39,20 @@ async function checkForUpdates() {
 // Update UI based on current phase
 async function updatePhase() {
   try {
-    const response = await fetch('/api/flow');
+    const response = await fetch(`/api/flow?quizId=${quizId}`);
     const data = await response.json();
+
+    if (data.error) {
+      document.getElementById('phaseIndicator').textContent = '';
+      document.getElementById('quizNotFound').classList.remove('hidden');
+      return;
+    }
+
     currentPhase = data.phase;
 
     // Hide all phases
+    document.getElementById('landing').classList.add('hidden');
+    document.getElementById('quizNotFound').classList.add('hidden');
     for (let i = 0; i <= 3; i++) {
       document.getElementById(`phase${i}`).classList.add('hidden');
     }
@@ -79,9 +100,8 @@ async function loadSubmissionPhase(data) {
   const status = document.getElementById('submissionStatus');
 
   if (data.hasSubmitted) {
-    // Fetch and pre-fill user's existing song
     try {
-      const response = await fetch('/api/songs/my-song');
+      const response = await fetch(`/api/songs/my-song?quizId=${quizId}`);
       const result = await response.json();
 
       if (result.song) {
@@ -99,7 +119,7 @@ async function loadSubmissionPhase(data) {
     document.getElementById('submissionForm').classList.remove('hidden');
 
     if (justSubmitted) {
-      status.textContent = '✓ Song updated successfully';
+      status.textContent = 'Song updated successfully';
       status.classList.remove('hidden');
       status.classList.add('status-message', 'success');
     } else {
@@ -108,10 +128,7 @@ async function loadSubmissionPhase(data) {
   } else {
     document.getElementById('submissionForm').classList.remove('hidden');
     submitButton.textContent = 'Submit Song';
-
-    // Clear form for new submission
     document.getElementById('songForm').reset();
-
     status.classList.add('hidden');
   }
 }
@@ -121,6 +138,7 @@ document.getElementById('songForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const formData = {
+    quizId,
     submitterName: document.getElementById('submitterName').value,
     songName: document.getElementById('songName').value,
     songAuthor: document.getElementById('songAuthor').value,
@@ -137,7 +155,6 @@ document.getElementById('songForm').addEventListener('submit', async (e) => {
     const result = await response.json();
 
     if (response.ok) {
-      // Only reset form on initial submission, not on update
       if (!result.updated) {
         document.getElementById('songForm').reset();
       }
@@ -157,7 +174,7 @@ async function loadVotingPhase(data) {
   document.getElementById('theme2').textContent = data.theme;
 
   if (data.hasVoted) {
-    const message = justVoted ? '✓ You have voted' : '✓ You have already voted';
+    const message = justVoted ? 'You have voted' : 'You have already voted';
     document.getElementById('votingSection').innerHTML = `
       <div class="status-message success">
         ${message}
@@ -167,7 +184,7 @@ async function loadVotingPhase(data) {
   }
 
   try {
-    const response = await fetch('/api/songs/list');
+    const response = await fetch(`/api/songs/list?quizId=${quizId}`);
     const songsData = await response.json();
     const songs = songsData.songs;
 
@@ -181,7 +198,7 @@ async function loadVotingPhase(data) {
         <div class="song-info">
           <div class="song-title">${escapeHtml(song.song_name)}</div>
           <div class="song-artist">by ${escapeHtml(song.song_author)}</div>
-          <a href="${escapeHtml(song.song_link)}" target="_blank" class="song-link">Listen →</a>
+          <a href="${escapeHtml(song.song_link)}" target="_blank" class="song-link">Listen</a>
         </div>
         <div class="vote-points">
           <button class="point-btn" data-song-id="${song.id}" data-points="3">3 points</button>
@@ -192,7 +209,6 @@ async function loadVotingPhase(data) {
       songsList.appendChild(songItem);
     });
 
-    // Add vote button listeners
     document.querySelectorAll('.point-btn').forEach(btn => {
       btn.addEventListener('click', handleVoteClick);
     });
@@ -208,15 +224,11 @@ function handleVoteClick(e) {
   const songId = parseInt(e.target.dataset.songId);
   const points = parseInt(e.target.dataset.points);
 
-  // Check if this point value is already assigned
   if (selectedVotes[points] === songId) {
-    // Unselect
     delete selectedVotes[points];
   } else if (selectedVotes[points]) {
-    // Already assigned to another song, reassign
     selectedVotes[points] = songId;
   } else {
-    // Assign new vote
     selectedVotes[points] = songId;
   }
 
@@ -225,13 +237,11 @@ function handleVoteClick(e) {
 
 // Update vote button states
 function updateVoteButtons() {
-  // Reset all buttons
   document.querySelectorAll('.point-btn').forEach(btn => {
     btn.classList.remove('selected');
     btn.disabled = false;
   });
 
-  // Mark selected votes
   Object.entries(selectedVotes).forEach(([points, songId]) => {
     const btn = document.querySelector(
       `.point-btn[data-song-id="${songId}"][data-points="${points}"]`
@@ -241,14 +251,12 @@ function updateVoteButtons() {
       btn.closest('.song-item').classList.add('selected');
     }
 
-    // Disable other point buttons for this song
     document.querySelectorAll(`.point-btn[data-song-id="${songId}"]`).forEach(b => {
       if (b.dataset.points !== points) {
         b.disabled = true;
       }
     });
 
-    // Disable same point value for other songs
     document.querySelectorAll(`.point-btn[data-points="${points}"]`).forEach(b => {
       if (parseInt(b.dataset.songId) !== songId) {
         b.disabled = true;
@@ -256,7 +264,6 @@ function updateVoteButtons() {
     });
   });
 
-  // Update song item selection state
   document.querySelectorAll('.song-item').forEach(item => {
     const songId = parseInt(item.querySelector('.point-btn').dataset.songId);
     const hasVote = Object.values(selectedVotes).includes(songId);
@@ -267,7 +274,6 @@ function updateVoteButtons() {
     }
   });
 
-  // Enable/disable submit button
   const submitBtn = document.getElementById('submitVotes');
   submitBtn.disabled = Object.keys(selectedVotes).length !== 3;
 }
@@ -283,7 +289,7 @@ document.getElementById('submitVotes').addEventListener('click', async () => {
     const response = await fetch('/api/votes/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ votes })
+      body: JSON.stringify({ quizId, votes })
     });
 
     const result = await response.json();
@@ -304,8 +310,13 @@ document.getElementById('submitVotes').addEventListener('click', async () => {
 // Phase 3: Results
 async function loadResultsPhase() {
   try {
-    const response = await fetch('/api/votes/results');
-    const data = await response.json();
+    const [resultsRes, badgesRes] = await Promise.all([
+      fetch(`/api/votes/results?quizId=${quizId}`),
+      fetch(`/api/votes/badges?quizId=${quizId}`)
+    ]);
+    const data = await resultsRes.json();
+    const badgesData = await badgesRes.json();
+    const badges = badgesData.badges || {};
 
     document.getElementById('theme3').textContent = data.theme;
 
@@ -314,6 +325,16 @@ async function loadResultsPhase() {
 
     data.results.forEach((result, index) => {
       const rankClass = index === 0 ? 'first' : index === 1 ? 'second' : index === 2 ? 'third' : '';
+      const songBadges = badges[result.id] || [];
+      const badgesHtml = songBadges.length > 0
+        ? `<div class="badges-container">${songBadges.map(b =>
+            `<span class="badge" title="${escapeHtml(b.description)}">
+              <span class="badge-icon">${b.icon}</span>
+              <span class="badge-name">${escapeHtml(b.name)}</span>
+            </span>`
+          ).join('')}</div>`
+        : '';
+
       const resultItem = document.createElement('div');
       resultItem.className = 'result-item';
       resultItem.innerHTML = `
@@ -322,7 +343,8 @@ async function loadResultsPhase() {
           <div class="result-title">${escapeHtml(result.song_name)}</div>
           <div class="result-artist">by ${escapeHtml(result.song_author)}</div>
           <div class="result-submitter">Submitted by ${escapeHtml(result.submitter_name)}</div>
-          <a href="${escapeHtml(result.song_link)}" target="_blank" class="song-link">Listen →</a>
+          ${badgesHtml}
+          <a href="${escapeHtml(result.song_link)}" target="_blank" class="song-link">Listen</a>
         </div>
         <div class="result-points">${result.total_points} pts</div>
       `;

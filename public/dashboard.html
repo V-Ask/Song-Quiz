@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Song Quiz</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .dashboard-header .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .dashboard-header .user-info span {
+      color: var(--text-dim);
+    }
+    .btn-logout {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .btn-logout:hover {
+      color: var(--error);
+      border-color: var(--error);
+    }
+    .quiz-card {
+      background: var(--surface-light);
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+    }
+    .quiz-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .quiz-card-header h3 {
+      color: var(--text);
+      font-size: 1.2rem;
+    }
+    .phase-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .phase-badge.phase-0 { background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); }
+    .phase-badge.phase-1 { background: rgba(124,58,237,0.2); color: #a78bfa; border: 1px solid rgba(124,58,237,0.4); }
+    .phase-badge.phase-2 { background: rgba(236,72,153,0.2); color: #f472b6; border: 1px solid rgba(236,72,153,0.4); }
+    .phase-badge.phase-3 { background: rgba(16,185,129,0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.4); }
+    .quiz-card-meta {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+    .quiz-card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .btn-small {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: 0.4rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-small.btn-copy {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-small.btn-copy:hover { border-color: var(--primary); }
+    .btn-small.btn-stats {
+      background: rgba(124,58,237,0.2);
+      color: #a78bfa;
+      border: 1px solid rgba(124,58,237,0.3);
+    }
+    .btn-small.btn-stats:hover { background: rgba(124,58,237,0.3); }
+    .btn-small.btn-presentation {
+      background: rgba(236,72,153,0.2);
+      color: #f472b6;
+      border: 1px solid rgba(236,72,153,0.3);
+    }
+    .btn-small.btn-presentation:hover { background: rgba(236,72,153,0.3); }
+    .btn-small.btn-delete {
+      background: rgba(239,68,68,0.1);
+      color: var(--error);
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+    .btn-small.btn-delete:hover { background: rgba(239,68,68,0.2); }
+    .copy-feedback {
+      color: var(--success);
+      font-size: 0.8rem;
+      display: none;
+    }
+    .quiz-phase-control {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-dim);
+    }
+
+    /* Login/Register tabs */
+    .auth-tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--border);
+    }
+    .auth-tab {
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      font-size: 1rem;
+    }
+    .auth-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Song Quiz</h1>
+    </header>
+
+    <main>
+      <!-- Auth Screen (not logged in) -->
+      <div id="authScreen" class="hidden">
+        <div class="card">
+          <div class="auth-tabs">
+            <button class="auth-tab active" id="loginTab" onclick="showAuthTab('login')">Login</button>
+            <button class="auth-tab" id="registerTab" onclick="showAuthTab('register')">Register</button>
+          </div>
+
+          <form id="loginForm">
+            <div class="form-group">
+              <label for="loginUsername">Username</label>
+              <input type="text" id="loginUsername" required placeholder="Your username">
+            </div>
+            <div class="form-group">
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" required placeholder="Your password">
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+          </form>
+
+          <form id="registerForm" class="hidden">
+            <div class="form-group">
+              <label for="regDisplayName">Display Name</label>
+              <input type="text" id="regDisplayName" required placeholder="How others see you">
+            </div>
+            <div class="form-group">
+              <label for="regUsername">Username</label>
+              <input type="text" id="regUsername" required placeholder="Choose a username" minlength="3" maxlength="30">
+            </div>
+            <div class="form-group">
+              <label for="regEmail">Email</label>
+              <input type="email" id="regEmail" required placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+              <label for="regPassword">Password</label>
+              <input type="password" id="regPassword" required placeholder="At least 6 characters" minlength="6">
+            </div>
+            <button type="submit" class="btn btn-primary">Create Account</button>
+          </form>
+
+          <div id="authError" class="error-message hidden"></div>
+        </div>
+      </div>
+
+      <!-- Dashboard (logged in) -->
+      <div id="dashboard" class="hidden">
+        <div class="dashboard-header">
+          <div class="user-info">
+            <span>Welcome, <strong id="displayName"></strong></span>
+          </div>
+          <div>
+            <a href="/stats" style="color:var(--text-dim);text-decoration:none;margin-right:1rem;font-size:0.9rem">All Stats</a>
+            <button class="btn-logout" id="logoutBtn">Logout</button>
+          </div>
+        </div>
+
+        <!-- Create Quiz -->
+        <div class="card">
+          <h2>Create New Quiz</h2>
+          <div class="flow-form-container">
+            <form id="createQuizForm" class="flow-form-left">
+              <div class="form-group">
+                <label for="themeInput">Song Theme</label>
+                <input type="text" id="themeInput" required placeholder="e.g., Summer Vibes, 90s Classics">
+              </div>
+              <div class="form-group">
+                <label for="themeImageInput">Theme Image/GIF (optional)</label>
+                <input type="file" id="themeImageInput" accept="image/*,image/gif">
+                <small>Image will be shown during the submission phase (max 5MB)</small>
+              </div>
+              <div class="form-group">
+                <label for="timerInput">Auto-advance Timer (seconds, optional)</label>
+                <input type="number" id="timerInput" placeholder="Leave empty for manual control">
+              </div>
+              <button type="submit" class="btn btn-primary">Create Quiz</button>
+            </form>
+            <div class="flow-form-right">
+              <div id="imagePreview" class="image-preview hidden">
+                <img id="previewImg" src="" alt="Preview">
+                <button type="button" id="removeImage" class="btn-remove-image">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quiz List -->
+        <div class="card">
+          <h2>Your Quizzes</h2>
+          <div id="quizList"></div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <span class="version">v2.0.0</span>
+    </footer>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

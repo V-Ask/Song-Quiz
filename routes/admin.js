@@ -1,18 +1,47 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 const { queries } = require('../database');
 const { ensureAdmin } = require('../middleware/auth');
 
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename with timestamp
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'theme-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    // Accept images only
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'), false);
+    }
+    cb(null, true);
+  }
+});
+
 // Create a new flow with theme (Phase 0)
-router.post('/flow', ensureAdmin, async (req, res) => {
+router.post('/flow', ensureAdmin, upload.single('themeImage'), async (req, res) => {
   try {
-    const { theme, timer, themeImage } = req.body;
+    const { theme, timer } = req.body;
 
     if (!theme) {
       return res.status(400).json({ error: 'Theme is required' });
     }
 
-    const flow = await queries.createFlow(theme, timer || null, themeImage || null);
+    // Get file path if image was uploaded
+    const themeImagePath = req.file ? `/uploads/${req.file.filename}` : null;
+
+    const flow = await queries.createFlow(theme, timer || null, themeImagePath);
     res.json(flow);
   } catch (error) {
     console.error('Error creating flow:', error);

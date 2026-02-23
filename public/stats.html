@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Song Quiz - Statistics</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    .stats-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    .stats-header .nav-links {
+      display: flex;
+      gap: 1rem;
+    }
+    .stats-header .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .stats-header .nav-links a:hover {
+      color: var(--primary);
+    }
+    .chart-container {
+      position: relative;
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: var(--surface-light);
+      border-radius: 0.75rem;
+    }
+    .chart-container canvas {
+      max-height: 400px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--surface-light);
+      padding: 1.25rem;
+      border-radius: 0.75rem;
+      text-align: center;
+      border-left: 4px solid var(--primary);
+    }
+    .stat-card .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .stat-card .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 0.25rem;
+    }
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .leaderboard-table th,
+    .leaderboard-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .leaderboard-table th {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .leaderboard-table tr:hover td {
+      background: var(--surface-light);
+    }
+    .leaderboard-rank {
+      font-weight: 700;
+      color: var(--primary);
+      width: 3rem;
+    }
+    .quiz-list-stats a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .quiz-list-stats a:hover {
+      text-decoration: underline;
+    }
+    .no-data {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="stats-header">
+      <h1>Statistics</h1>
+      <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/stats">All Stats</a>
+      </div>
+    </div>
+
+    <div id="loading" class="card">
+      <p>Loading statistics...</p>
+    </div>
+
+    <div id="notAuthenticated" class="card hidden">
+      <h2>Not Logged In</h2>
+      <p>You need to be logged in to view statistics.</p>
+      <a href="/" class="btn btn-primary" style="margin-top:1rem;">Go to Login</a>
+    </div>
+
+    <div id="statsContent" class="hidden"></div>
+  </div>
+
+  <footer>
+    <span class="version">v2.0.0</span>
+  </footer>
+
+  <script src="/stats.js"></script>
+</body>
+</html>

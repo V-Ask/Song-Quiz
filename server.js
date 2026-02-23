@@ -3,7 +3,7 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const helmet = require('helmet');
 const { initializeDatabase, queries } = require('./database');
-const { ensureUser, loginAdmin, checkAdmin } = require('./middleware/auth');
+const { ensureUser } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -12,39 +12,44 @@ const PORT = process.env.PORT || 3001;
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Security middleware
 app.use(helmet({
-  contentSecurityPolicy: false, // Disable for inline scripts in frontend
+  contentSecurityPolicy: false,
 }));
 
 // Initialize database
 initializeDatabase();
 
-// Auth routes
-app.post('/api/admin/login', loginAdmin);
-app.get('/api/admin/check', checkAdmin);
-
 // API routes
-app.use('/api/admin', require('./routes/admin'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/quiz', require('./routes/quiz'));
 app.use('/api/songs', require('./routes/songs'));
 app.use('/api/votes', require('./routes/votes'));
+app.use('/api/stats', require('./routes/stats'));
 
-// Get current flow info (for all users)
+// Get quiz info (for voters - anonymous access)
 app.get('/api/flow', ensureUser, async (req, res) => {
   try {
-    const flow = await queries.getCurrentFlow();
-    if (!flow) {
-      return res.json({ phase: 0, theme: null });
+    const quizId = req.query.quizId;
+    if (!quizId) {
+      return res.json({ phase: 0, theme: null, error: 'No quiz specified' });
     }
 
-    const hasSubmitted = await queries.hasUserSubmitted(flow.id, req.userId);
-    const hasVoted = await queries.hasUserVoted(flow.id, req.userId);
+    const quiz = await queries.getQuiz(quizId);
+    if (!quiz) {
+      return res.json({ phase: 0, theme: null, error: 'Quiz not found' });
+    }
+
+    const hasSubmitted = await queries.hasUserSubmitted(quiz.id, req.userId);
+    const hasVoted = await queries.hasUserVoted(quiz.id, req.userId);
 
     res.json({
-      phase: flow.phase,
-      theme: flow.theme,
-      themeImage: flow.theme_image,
+      phase: quiz.phase,
+      theme: quiz.theme,
+      themeImage: quiz.theme_image,
+      quizId: quiz.id,
       hasSubmitted,
       hasVoted
     });
@@ -57,22 +62,33 @@ app.get('/api/flow', ensureUser, async (req, res) => {
 // Timer check endpoint (for auto-phase progression)
 app.get('/api/timer-check', async (req, res) => {
   try {
-    const flow = await queries.getCurrentFlow();
-    if (!flow || !flow.phase_timer) {
+    const quizId = req.query.quizId;
+    if (!quizId) {
+      return res.json({ shouldAdvance: false });
+    }
+
+    const quiz = await queries.getQuiz(quizId);
+    if (!quiz || !quiz.phase_timer) {
       return res.json({ shouldAdvance: false });
     }
 
     const now = Math.floor(Date.now() / 1000);
-    const elapsed = now - flow.phase_started_at;
+    const elapsed = now - quiz.phase_started_at;
 
-    if (elapsed >= flow.phase_timer && flow.phase < 3) {
-      await queries.updatePhase(flow.phase + 1, flow.phase_timer);
-      return res.json({ shouldAdvance: true, newPhase: flow.phase + 1 });
+    if (elapsed >= quiz.phase_timer && quiz.phase < 3) {
+      const newPhase = quiz.phase + 1;
+      await queries.updateQuizPhase(quizId, newPhase, quiz.phase_timer);
+
+      if (newPhase === 3) {
+        await queries.markQuizCompleted(quizId);
+      }
+
+      return res.json({ shouldAdvance: true, newPhase });
     }
 
     res.json({
       shouldAdvance: false,
-      timeRemaining: flow.phase_timer - elapsed
+      timeRemaining: quiz.phase_timer - elapsed
     });
   } catch (error) {
     console.error('Error checking timer:', error);
@@ -85,17 +101,25 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 app.get('/presentation', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'presentation.html'));
 });
 
+app.get('/stats', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'stats.html'));
+});
+
+// Redirect old admin route to dashboard
+app.get('/admin', (req, res) => {
+  res.redirect('/dashboard');
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Admin panel: http://localhost:${PORT}/admin`);
+  console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
   console.log(`Presentation view: http://localhost:${PORT}/presentation`);
-  console.log(`Default admin password: admin123`);
 });

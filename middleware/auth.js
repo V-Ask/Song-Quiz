@@ -1,10 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const { queries } = require('../database');
 
-// Admin password (in production, this should be hashed and stored securely)
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-
-// Middleware to ensure user has a valid session
+// Middleware to ensure anonymous user has a valid session (voters)
 async function ensureUser(req, res, next) {
   let userId = req.cookies.userId;
 
@@ -24,37 +21,63 @@ async function ensureUser(req, res, next) {
   next();
 }
 
-// Middleware to check admin authentication
-function ensureAdmin(req, res, next) {
-  const adminAuth = req.cookies.adminAuth;
+// Middleware to ensure user is authenticated (registered account with valid session)
+async function ensureAuth(req, res, next) {
+  try {
+    const sessionToken = req.cookies.sessionToken;
+    if (!sessionToken) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
 
-  if (adminAuth !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    const session = await queries.getSession(sessionToken);
+    if (!session) {
+      res.clearCookie('sessionToken');
+      return res.status(401).json({ error: 'Session expired' });
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (now > session.expires_at) {
+      await queries.deleteSession(sessionToken);
+      res.clearCookie('sessionToken');
+      return res.status(401).json({ error: 'Session expired' });
+    }
+
+    const account = await queries.getAccountById(session.account_id);
+    if (!account) {
+      return res.status(401).json({ error: 'Account not found' });
+    }
+
+    req.account = account;
+    next();
+  } catch (error) {
+    console.error('Auth error:', error);
+    res.status(500).json({ error: 'Authentication failed' });
   }
-
-  next();
 }
 
-// Route to authenticate as admin
-function loginAdmin(req, res) {
-  const { password } = req.body;
+// Middleware to ensure authenticated user owns the quiz
+async function ensureQuizOwner(req, res, next) {
+  try {
+    const quizId = req.params.quizId || req.body.quizId || req.query.quizId;
+    if (!quizId) {
+      return res.status(400).json({ error: 'Quiz ID required' });
+    }
 
-  if (password === ADMIN_PASSWORD) {
-    res.cookie('adminAuth', ADMIN_PASSWORD, {
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true,
-      sameSite: 'strict'
-    });
-    return res.json({ success: true });
+    const quiz = await queries.getQuiz(quizId);
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+
+    if (quiz.owner_id !== req.account.id) {
+      return res.status(403).json({ error: 'Not your quiz' });
+    }
+
+    req.quiz = quiz;
+    next();
+  } catch (error) {
+    console.error('Quiz owner check error:', error);
+    res.status(500).json({ error: 'Authorization failed' });
   }
-
-  return res.status(401).json({ error: 'Invalid password' });
 }
 
-// Route to check if user is admin
-function checkAdmin(req, res) {
-  const adminAuth = req.cookies.adminAuth;
-  res.json({ isAdmin: adminAuth === ADMIN_PASSWORD });
-}
-
-module.exports = { ensureUser, ensureAdmin, loginAdmin, checkAdmin, ADMIN_PASSWORD };
+module.exports = { ensureUser, ensureAuth, ensureQuizOwner };
