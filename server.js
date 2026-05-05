@@ -22,6 +22,16 @@ app.use(helmet({
 // Initialize database
 initializeDatabase();
 
+// Clean up expired sessions and reset tokens periodically (every hour)
+setInterval(async () => {
+  try {
+    await queries.deleteExpiredSessions();
+    await queries.deleteExpiredResetTokens();
+  } catch (error) {
+    console.error('Cleanup error:', error);
+  }
+}, 60 * 60 * 1000);
+
 // API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/quiz', require('./routes/quiz'));
@@ -51,7 +61,12 @@ app.get('/api/flow', ensureUser, async (req, res) => {
       themeImage: quiz.theme_image,
       quizId: quiz.id,
       hasSubmitted,
-      hasVoted
+      hasVoted,
+      schedule: {
+        phase1At: quiz.phase_1_at,
+        phase2At: quiz.phase_2_at,
+        phase3At: quiz.phase_3_at
+      }
     });
   } catch (error) {
     console.error('Error getting flow:', error);
@@ -68,28 +83,54 @@ app.get('/api/timer-check', async (req, res) => {
     }
 
     const quiz = await queries.getQuiz(quizId);
-    if (!quiz || !quiz.phase_timer) {
+    if (!quiz || quiz.phase >= 3) {
       return res.json({ shouldAdvance: false });
     }
 
     const now = Math.floor(Date.now() / 1000);
-    const elapsed = now - quiz.phase_started_at;
+    const nextPhase = quiz.phase + 1;
 
-    if (elapsed >= quiz.phase_timer && quiz.phase < 3) {
-      const newPhase = quiz.phase + 1;
-      await queries.updateQuizPhase(quizId, newPhase, quiz.phase_timer);
+    // Check absolute scheduled timestamp first (takes precedence)
+    const scheduleField = `phase_${nextPhase}_at`;
+    const scheduledAt = quiz[scheduleField];
 
-      if (newPhase === 3) {
+    if (scheduledAt && now >= scheduledAt) {
+      await queries.updateQuizPhase(quizId, nextPhase, quiz.phase_timer);
+      if (nextPhase === 3) {
         await queries.markQuizCompleted(quizId);
       }
-
-      return res.json({ shouldAdvance: true, newPhase });
+      return res.json({ shouldAdvance: true, newPhase: nextPhase });
     }
 
-    res.json({
-      shouldAdvance: false,
-      timeRemaining: quiz.phase_timer - elapsed
-    });
+    // Fall back to duration-based timer
+    if (quiz.phase_timer) {
+      const elapsed = now - quiz.phase_started_at;
+      if (elapsed >= quiz.phase_timer) {
+        await queries.updateQuizPhase(quizId, nextPhase, quiz.phase_timer);
+        if (nextPhase === 3) {
+          await queries.markQuizCompleted(quizId);
+        }
+        return res.json({ shouldAdvance: true, newPhase: nextPhase });
+      }
+
+      return res.json({
+        shouldAdvance: false,
+        timeRemaining: quiz.phase_timer - elapsed,
+        timerType: 'duration'
+      });
+    }
+
+    // If scheduled timestamp exists but hasn't been reached yet
+    if (scheduledAt) {
+      return res.json({
+        shouldAdvance: false,
+        timeRemaining: scheduledAt - now,
+        scheduledAt: scheduledAt,
+        timerType: 'scheduled'
+      });
+    }
+
+    res.json({ shouldAdvance: false });
   } catch (error) {
     console.error('Error checking timer:', error);
     res.status(500).json({ error: 'Failed to check timer' });

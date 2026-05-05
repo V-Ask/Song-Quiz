@@ -1,0 +1,16 @@
+services:
+  song-quiz:
+    build: .
+    container_name: song-quiz
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_PATH=/app/data/database.db
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads

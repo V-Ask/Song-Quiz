@@ -55,7 +55,7 @@ async function ensureAuth(req, res, next) {
   }
 }
 
-// Middleware to ensure authenticated user owns the quiz
+// Middleware to ensure authenticated user owns or moderates the quiz
 async function ensureQuizOwner(req, res, next) {
   try {
     const quizId = req.params.quizId || req.body.quizId || req.query.quizId;
@@ -68,12 +68,21 @@ async function ensureQuizOwner(req, res, next) {
       return res.status(404).json({ error: 'Quiz not found' });
     }
 
-    if (quiz.owner_id !== req.account.id) {
-      return res.status(403).json({ error: 'Not your quiz' });
+    if (quiz.owner_id === req.account.id) {
+      req.quiz = quiz;
+      req.quizRole = 'owner';
+      return next();
     }
 
-    req.quiz = quiz;
-    next();
+    // Check if user is a moderator
+    const isMod = await queries.isModerator(quizId, req.account.id);
+    if (isMod) {
+      req.quiz = quiz;
+      req.quizRole = 'moderator';
+      return next();
+    }
+
+    return res.status(403).json({ error: 'Not your quiz' });
   } catch (error) {
     console.error('Quiz owner check error:', error);
     res.status(500).json({ error: 'Authorization failed' });

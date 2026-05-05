@@ -17,6 +17,7 @@ async function init() {
 
   await updatePhase();
   setInterval(checkForUpdates, 5000);
+  setInterval(checkTimer, 1000);
 }
 
 // Check for phase updates
@@ -360,6 +361,31 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Check timer for auto-advance and countdown display
+async function checkTimer() {
+  if (!quizId) return;
+  try {
+    const response = await fetch(`/api/timer-check?quizId=${quizId}`);
+    const data = await response.json();
+
+    const countdownEl = document.getElementById('countdown');
+    if (countdownEl && data.timeRemaining && data.timeRemaining > 0) {
+      const minutes = Math.floor(data.timeRemaining / 60);
+      const seconds = data.timeRemaining % 60;
+      countdownEl.textContent = `Next phase in: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      countdownEl.classList.remove('hidden');
+    } else if (countdownEl) {
+      countdownEl.classList.add('hidden');
+    }
+
+    if (data.shouldAdvance) {
+      await updatePhase();
+    }
+  } catch (error) {
+    // Silently fail - flow polling is the primary mechanism
+  }
 }
 
 // Start the app

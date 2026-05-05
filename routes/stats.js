@@ -11,7 +11,10 @@ router.get('/quiz/:quizId', ensureAuth, async (req, res) => {
       return res.status(404).json({ error: 'Quiz not found' });
     }
     if (quiz.owner_id !== req.account.id) {
-      return res.status(403).json({ error: 'Not your quiz' });
+      const isMod = await queries.isModerator(req.params.quizId, req.account.id);
+      if (!isMod) {
+        return res.status(403).json({ error: 'Not your quiz' });
+      }
     }
 
     const results = await queries.getResults(quiz.id);

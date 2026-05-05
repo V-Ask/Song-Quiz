@@ -169,6 +169,9 @@
               <input type="password" id="loginPassword" required placeholder="Your password">
             </div>
             <button type="submit" class="btn btn-primary">Login</button>
+            <div style="margin-top: 1rem; text-align: center;">
+              <a href="#" id="forgotPasswordLink" style="color: var(--text-dim); font-size: 0.85rem; text-decoration: none;">Forgot your password?</a>
+            </div>
           </form>
 
           <form id="registerForm" class="hidden">
@@ -189,6 +192,17 @@
               <input type="password" id="regPassword" required placeholder="At least 6 characters" minlength="6">
             </div>
             <button type="submit" class="btn btn-primary">Create Account</button>
+          </form>
+
+          <form id="forgotPasswordForm" class="hidden">
+            <div class="form-group">
+              <label for="resetEmail">Email Address</label>
+              <input type="email" id="resetEmail" required placeholder="your@email.com">
+            </div>
+            <button type="submit" class="btn btn-primary">Send Reset Link</button>
+            <div style="margin-top: 1rem; text-align: center;">
+              <a href="#" id="backToLogin" style="color: var(--text-dim); font-size: 0.85rem; text-decoration: none;">Back to Login</a>
+            </div>
           </form>
 
           <div id="authError" class="error-message hidden"></div>
@@ -225,6 +239,24 @@
                 <label for="timerInput">Auto-advance Timer (seconds, optional)</label>
                 <input type="number" id="timerInput" placeholder="Leave empty for manual control">
               </div>
+              <div class="form-group">
+                <label>Phase Schedules (optional)</label>
+                <small style="display:block;margin-bottom:0.75rem;color:var(--text-dim);">Set specific dates/times for each phase transition. These override the timer if both are set.</small>
+                <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                  <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <label style="min-width:130px;font-size:0.85rem;margin:0;">Start Submissions</label>
+                    <input type="datetime-local" id="schedule1Input" style="flex:1;">
+                  </div>
+                  <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <label style="min-width:130px;font-size:0.85rem;margin:0;">Start Voting</label>
+                    <input type="datetime-local" id="schedule2Input" style="flex:1;">
+                  </div>
+                  <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <label style="min-width:130px;font-size:0.85rem;margin:0;">Show Results</label>
+                    <input type="datetime-local" id="schedule3Input" style="flex:1;">
+                  </div>
+                </div>
+              </div>
               <button type="submit" class="btn btn-primary">Create Quiz</button>
             </form>
             <div class="flow-form-right">
@@ -240,6 +272,12 @@
         <div class="card">
           <h2>Your Quizzes</h2>
           <div id="quizList"></div>
+        </div>
+
+        <!-- Moderated Quizzes -->
+        <div class="card hidden" id="moderatedSection">
+          <h2>Moderated Quizzes</h2>
+          <div id="moderatedQuizList"></div>
         </div>
       </div>
     </main>

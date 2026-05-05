@@ -17,6 +17,18 @@ async function init() {
 
   await updateDisplay();
   setInterval(updateDisplay, 3000);
+  setInterval(async () => {
+    if (!quizId) return;
+    try {
+      const response = await fetch(`/api/timer-check?quizId=${quizId}`);
+      const data = await response.json();
+      if (data.shouldAdvance) {
+        await updateDisplay();
+      }
+    } catch (error) {
+      // Silent fail
+    }
+  }, 1000);
 }
 
 // Update the display based on current phase

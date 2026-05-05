@@ -1,7 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.join(__dirname, 'database.db');
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'database.db');
 const db = new sqlite3.Database(dbPath);
 
 // Initialize database schema
@@ -40,6 +40,16 @@ function initializeDatabase() {
       FOREIGN KEY (owner_id) REFERENCES accounts(id) ON DELETE CASCADE
     )`);
 
+    // Quiz moderators (shared management)
+    db.run(`CREATE TABLE IF NOT EXISTS quiz_moderators (
+      quiz_id TEXT NOT NULL,
+      account_id TEXT NOT NULL,
+      invited_at INTEGER DEFAULT (strftime('%s', 'now')),
+      PRIMARY KEY (quiz_id, account_id),
+      FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE,
+      FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+    )`);
+
     // Songs submitted by users
     db.run(`CREATE TABLE IF NOT EXISTS songs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,6 +80,21 @@ function initializeDatabase() {
     db.run(`CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       created_at INTEGER DEFAULT (strftime('%s', 'now'))
+    )`);
+
+    // Add phase schedule columns (migration - safe to run multiple times)
+    db.run('ALTER TABLE quizzes ADD COLUMN phase_1_at INTEGER DEFAULT NULL', () => {});
+    db.run('ALTER TABLE quizzes ADD COLUMN phase_2_at INTEGER DEFAULT NULL', () => {});
+    db.run('ALTER TABLE quizzes ADD COLUMN phase_3_at INTEGER DEFAULT NULL', () => {});
+
+    // Password reset tokens
+    db.run(`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      token TEXT PRIMARY KEY,
+      account_id TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at INTEGER DEFAULT (strftime('%s', 'now')),
+      FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
     )`);
   });
 }
@@ -160,6 +185,156 @@ const queries = {
     });
   },
 
+  deleteSessionsByAccount: (accountId) => {
+    return new Promise((resolve, reject) => {
+      db.run('DELETE FROM sessions WHERE account_id = ?', [accountId], function(err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+  },
+
+  // === Password reset ===
+
+  createPasswordResetToken: (token, accountId, expiresAt) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO password_reset_tokens (token, account_id, expires_at) VALUES (?, ?, ?)',
+        [token, accountId, expiresAt],
+        function(err) {
+          if (err) reject(err);
+          else resolve({ token, accountId });
+        }
+      );
+    });
+  },
+
+  getPasswordResetToken: (token) => {
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0',
+        [token],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+  },
+
+  markResetTokenUsed: (token) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE password_reset_tokens SET used = 1 WHERE token = ?',
+        [token],
+        function(err) {
+          if (err) reject(err);
+          else resolve({ changes: this.changes });
+        }
+      );
+    });
+  },
+
+  updateAccountPassword: (accountId, passwordHash) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE accounts SET password_hash = ? WHERE id = ?',
+        [passwordHash, accountId],
+        function(err) {
+          if (err) reject(err);
+          else resolve({ changes: this.changes });
+        }
+      );
+    });
+  },
+
+  deleteExpiredResetTokens: () => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'DELETE FROM password_reset_tokens WHERE expires_at < strftime("%s", "now") OR used = 1',
+        function(err) {
+          if (err) reject(err);
+          else resolve({ changes: this.changes });
+        }
+      );
+    });
+  },
+
+  // === Moderator management ===
+
+  addModerator: (quizId, accountId) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO quiz_moderators (quiz_id, account_id) VALUES (?, ?)',
+        [quizId, accountId],
+        function(err) {
+          if (err) reject(err);
+          else resolve({ quizId, accountId });
+        }
+      );
+    });
+  },
+
+  removeModerator: (quizId, accountId) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'DELETE FROM quiz_moderators WHERE quiz_id = ? AND account_id = ?',
+        [quizId, accountId],
+        function(err) {
+          if (err) reject(err);
+          else resolve({ changes: this.changes });
+        }
+      );
+    });
+  },
+
+  getModerators: (quizId) => {
+    return new Promise((resolve, reject) => {
+      db.all(
+        `SELECT a.id, a.username, a.display_name, qm.invited_at
+         FROM quiz_moderators qm
+         INNER JOIN accounts a ON qm.account_id = a.id
+         WHERE qm.quiz_id = ?
+         ORDER BY qm.invited_at ASC`,
+        [quizId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+  },
+
+  isModerator: (quizId, accountId) => {
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT 1 FROM quiz_moderators WHERE quiz_id = ? AND account_id = ?',
+        [quizId, accountId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(!!row);
+        }
+      );
+    });
+  },
+
+  getQuizzesByModerator: (accountId) => {
+    return new Promise((resolve, reject) => {
+      db.all(
+        `SELECT q.*, qm.invited_at as moderated_since
+         FROM quizzes q
+         INNER JOIN quiz_moderators qm ON q.id = qm.quiz_id
+         WHERE qm.account_id = ?
+         ORDER BY q.created_at DESC`,
+        [accountId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+  },
+
   // === Quiz management ===
 
   getQuiz: (quizId) => {
@@ -171,11 +346,12 @@ const queries = {
     });
   },
 
-  createQuiz: (quizId, ownerId, theme, timer = null, themeImage = null) => {
+  createQuiz: (quizId, ownerId, theme, timer = null, themeImage = null, phase1At = null, phase2At = null, phase3At = null) => {
     return new Promise((resolve, reject) => {
       db.run(
-        'INSERT INTO quizzes (id, owner_id, theme, theme_image, phase, phase_timer, phase_started_at) VALUES (?, ?, ?, ?, 0, ?, strftime("%s", "now"))',
-        [quizId, ownerId, theme, themeImage, timer],
+        `INSERT INTO quizzes (id, owner_id, theme, theme_image, phase, phase_timer, phase_started_at, phase_1_at, phase_2_at, phase_3_at)
+         VALUES (?, ?, ?, ?, 0, ?, strftime("%s", "now"), ?, ?, ?)`,
+        [quizId, ownerId, theme, themeImage, timer, phase1At, phase2At, phase3At],
         function(err) {
           if (err) reject(err);
           else resolve({ id: quizId, theme, phase: 0 });
@@ -231,6 +407,19 @@ const queries = {
         (err, rows) => {
           if (err) reject(err);
           else resolve(rows);
+        }
+      );
+    });
+  },
+
+  updateQuizSchedule: (quizId, phase1At, phase2At, phase3At) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE quizzes SET phase_1_at = ?, phase_2_at = ?, phase_3_at = ? WHERE id = ?',
+        [phase1At || null, phase2At || null, phase3At || null, quizId],
+        function(err) {
+          if (err) reject(err);
+          else resolve({ changes: this.changes });
         }
       );
     });
